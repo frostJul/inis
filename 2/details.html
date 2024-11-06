@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>T-Shirt Details</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!-- Контейнер для страницы футболки -->
+<div class="details-container">
+
+  <!-- Контейнер для изображения футболки -->
+  <div id="shirt-image" class="shirt-image"></div>
+
+  <!-- Контейнер для текстовой информации о футболке -->
+  <div class="shirt-details">
+    <h1 id="shirt-name"></h1>
+    <p id="shirt-price" class="price"></p>
+    <p id="shirt-description"></p>
+
+    <!-- Контейнер для кнопок выбора стороны -->
+    <div class="shirt-options">
+      <div class="side-options">
+        <button id="front-side" class="side-button">Front</button>
+        <button id="back-side" class="side-button">Back</button>
+      </div>
+
+      <!-- Контейнер для кнопок выбора цвета -->
+      <div id="color-options" class="color-options"></div>
+    </div>
+  </div>
+</div>
+
+<script src="shirts.js"></script>
+<script src="details.js"></script>
+</body>
+</html>

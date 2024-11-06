@@ -1,0 +1,137 @@
+body {
+    font-family: Arial, sans-serif;
+}
+
+.product-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.product-card {
+    border: 1px solid #ccc;
+    margin: 10px;
+    padding: 10px;
+    width: 200px;
+    text-align: center;
+}
+
+.product-card img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+}
+
+button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+/* Стиль для окна быстрого просмотра */
+.quick-view {
+    position: fixed;
+    top: 20%;
+    left: 30%;
+    width: 40%;
+    background-color: white;
+    border: 1px solid #ccc;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+}
+
+.quick-view img {
+    width: 100px;
+    height: 100px;
+}
+
+#close-quick-view {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+
+.product-details-container {
+    text-align: center;
+    margin: 20px;
+}
+
+/* Основной контейнер для страницы деталей */
+.details-container {
+    display: flex;
+    margin: 20px;
+}
+
+/* Стили для изображения футболки */
+.shirt-image img {
+    width: 300px;
+    height: 300px;
+    object-fit: cover;
+}
+
+/* Стили для текстовой информации и кнопок справа */
+.shirt-details {
+    margin-left: 30px;
+}
+
+.shirt-details h1 {
+    font-size: 2em;
+    margin-bottom: 10px;
+}
+
+.price {
+    font-size: 1.5em;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.shirt-options {
+    margin-top: 20px;
+}
+
+.side-options, .color-options {
+    margin-top: 10px;
+}
+
+/* Стили для кнопок выбора стороны и цвета с черной обводкой и текстом */
+.side-button, .color-button {
+    background-color: white;
+    border: 2px solid black;
+    color: black;
+    padding: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    margin: 5px;
+}
+
+.side-button {
+    background-color: #2c3e50;
+    color: white;
+}
+
+.side-button:hover {
+    background-color: #34495e;
+}
+
+/* Кнопки выбора цвета */
+.color-button {
+    width: 60px;
+    height: 40px;
+    border-radius: 5px;
+    border: 2px solid black;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 5px;
+    color: black;
+    background-color: white; /* По умолчанию цвет белый */
+}
+
+.color-button:hover {
+    opacity: 0.8;
+}

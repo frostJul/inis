@@ -3,23 +3,24 @@ let draggedElement = null;
 let isStickyDrag = false;
 let initialPosition = null;
 let touchStartTime = 0;
-let activeTouches = new Set(); // Для отслеживания количества пальцев на экране
+let activeTouches = new Set(); // Для отслеживания пальцев на экране
 let initialDistance = 0; // Для отслеживания дистанции при масштабировании
-let lastTouchTime = 0; // Для определения времени между касаниями
 const MIN_SIZE = 20; // Минимальный размер элемента
 
-// Функция начала обычного сенсорного перетаскивания
+// Функция начала сенсорного перетаскивания
 function onTouchStart(event) {
-    activeTouches.add(event.changedTouches[0].identifier); // Добавляем палец
+    event.preventDefault();  // Предотвращаем приближение экрана при двойном касании
+
     const touch = event.changedTouches[0];
+    activeTouches.add(touch.identifier); // Добавляем палец
 
     if (activeTouches.size > 1) {
-        // Масштабирование с двумя пальцами
-        initialDistance = getDistance(event.touches[0], event.touches[1]);
+        resetDrag(); // Если второй палец касается экрана, отменяем перетаскивание
         return;
     }
 
     if (isStickyDrag && draggedElement) {
+        // "Приклеенный" элемент следует за пальцем
         draggedElement.style.left = `${touch.clientX}px`;
         draggedElement.style.top = `${touch.clientY}px`;
     } else {
@@ -33,11 +34,16 @@ function onTouchStart(event) {
 
             // Для определения двойного касания
             const now = Date.now();
-            if (now - lastTouchTime < 300) {
+            if (now - touchStartTime < 300) {
                 enableStickyDrag();
             }
-            lastTouchTime = now;
+            touchStartTime = now;
         }
+    }
+
+    // Инициализация для отслеживания масштаба с двумя пальцами
+    if (event.touches.length === 2) {
+        initialDistance = getDistance(event.touches[0], event.touches[1]);
     }
 }
 
@@ -46,11 +52,18 @@ function onTouchMove(event) {
     const touch = event.changedTouches[0];
     if (draggedElement) {
         if (isStickyDrag) {
+            // Приклеенный элемент движется с пальцем
             draggedElement.style.left = `${touch.clientX}px`;
             draggedElement.style.top = `${touch.clientY}px`;
         } else {
+            // Обычное перетаскивание
             draggedElement.style.left = `${touch.clientX - draggedElement.offsetX}px`;
             draggedElement.style.top = `${touch.clientY - draggedElement.offsetY}px`;
+
+            // Уменьшение/увеличение при движении вверх/вниз
+            const deltaY = touch.clientY - initialPosition.top;
+            const scaleFactor = deltaY > 0 ? 0.9 : 1.1; // Уменьшение вниз, увеличение вверх
+            scaleElement(draggedElement, scaleFactor);
         }
     }
 
@@ -66,12 +79,13 @@ function onTouchMove(event) {
 
 // Завершение сенсорного перетаскивания
 function onTouchEnd(event) {
-    activeTouches.delete(event.changedTouches[0].identifier); // Убираем палец
+    const touch = event.changedTouches[0];
+    activeTouches.delete(touch.identifier); // Убираем палец
+
     if (!isStickyDrag) {
         draggedElement = null;
     } else {
-        // Проверка на быстрое касание (выключение режима) — теперь двойное касание
-        const touch = event.changedTouches[0];
+        // Проверка на быстрое касание (выключение режима)
         const rect = draggedElement.getBoundingClientRect();
         if (
             Math.abs(touch.clientX - rect.left - rect.width / 2) < 5 &&
@@ -81,7 +95,8 @@ function onTouchEnd(event) {
         }
     }
 
-    initialDistance = 0; // Сбросим начальную дистанцию для масштабирования
+    // Сбросим начальную дистанцию для масштабирования
+    initialDistance = 0;
 }
 
 // Включение "приклеенного" режима

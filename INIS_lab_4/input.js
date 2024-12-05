@@ -5,17 +5,20 @@ let initialPosition = null;
 let touchStartTime = 0;
 let activeTouches = new Set(); // Для отслеживания количества пальцев на экране
 let initialDistance = 0; // Для отслеживания дистанции при масштабировании
+let lastTouchTime = 0; // Для определения времени между касаниями
 const MIN_SIZE = 20; // Минимальный размер элемента
 
 // Функция начала обычного сенсорного перетаскивания
 function onTouchStart(event) {
     activeTouches.add(event.changedTouches[0].identifier); // Добавляем палец
+    const touch = event.changedTouches[0];
+
     if (activeTouches.size > 1) {
-        resetDrag(); // Если второй палец касается экрана, отменяем перетаскивание
+        // Масштабирование с двумя пальцами
+        initialDistance = getDistance(event.touches[0], event.touches[1]);
         return;
     }
 
-    const touch = event.changedTouches[0];
     if (isStickyDrag && draggedElement) {
         draggedElement.style.left = `${touch.clientX}px`;
         draggedElement.style.top = `${touch.clientY}px`;
@@ -30,15 +33,11 @@ function onTouchStart(event) {
 
             // Для определения двойного касания
             const now = Date.now();
-            if (now - touchStartTime < 300) {
+            if (now - lastTouchTime < 300) {
                 enableStickyDrag();
             }
-            touchStartTime = now;
+            lastTouchTime = now;
         }
-    }
-    // Инициализация расстояния для масштабирования, если два пальца
-    if (event.touches.length === 2) {
-        initialDistance = getDistance(event.touches[0], event.touches[1]);
     }
 }
 
@@ -54,6 +53,7 @@ function onTouchMove(event) {
             draggedElement.style.top = `${touch.clientY - draggedElement.offsetY}px`;
         }
     }
+
     // Масштабирование с двумя пальцами
     if (event.touches.length === 2) {
         const newDistance = getDistance(event.touches[0], event.touches[1]);
@@ -70,7 +70,7 @@ function onTouchEnd(event) {
     if (!isStickyDrag) {
         draggedElement = null;
     } else {
-        // Проверка на быстрое касание (выключение режима)
+        // Проверка на быстрое касание (выключение режима) — теперь двойное касание
         const touch = event.changedTouches[0];
         const rect = draggedElement.getBoundingClientRect();
         if (
@@ -80,6 +80,8 @@ function onTouchEnd(event) {
             disableStickyDrag();
         }
     }
+
+    initialDistance = 0; // Сбросим начальную дистанцию для масштабирования
 }
 
 // Включение "приклеенного" режима
@@ -111,15 +113,12 @@ function resetDrag() {
 }
 
 // Изменение размера элемента
-function onResize(event) {
-    const target = event.target.closest(".target");
-    if (target) {
-        const rect = target.getBoundingClientRect();
-        const newWidth = Math.max(MIN_SIZE, rect.width + event.deltaX);
-        const newHeight = Math.max(MIN_SIZE, rect.height + event.deltaY);
-        target.style.width = `${newWidth}px`;
-        target.style.height = `${newHeight}px`;
-    }
+function scaleElement(element, scaleFactor) {
+    const rect = element.getBoundingClientRect();
+    const newWidth = Math.max(MIN_SIZE, rect.width * scaleFactor);
+    const newHeight = Math.max(MIN_SIZE, rect.height * scaleFactor);
+    element.style.width = `${newWidth}px`;
+    element.style.height = `${newHeight}px`;
 }
 
 // Вычисление расстояния между двумя точками

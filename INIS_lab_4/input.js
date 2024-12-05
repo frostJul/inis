@@ -1,14 +1,16 @@
 // Переменные для отслеживания состояния
 let draggedElement = null;
-let isStickyDrag = false;
+let isStickyDrag = false; // Режим "следующий за пальцем"
 let initialPosition = null;
 let touchStartTime = 0;
 let activeTouches = new Set(); // Для отслеживания пальцев на экране
 let initialDistance = 0; // Для отслеживания дистанции при масштабировании
-const MIN_SIZE = 20; // Минимальный размер элемента
-const MAX_SCALE = 2; // Максимальный коэффициент увеличения
 let initialWidth = 0; // Начальная ширина элемента
 let initialHeight = 0; // Начальная высота элемента
+
+// Минимальный и максимальный размер элемента
+const MIN_SIZE = 20;
+const MAX_SIZE = 300;
 
 // Функция начала сенсорного перетаскивания
 function onTouchStart(event) {
@@ -68,11 +70,12 @@ function onTouchMove(event) {
     // Масштабирование с двумя пальцами
     if (event.touches.length === 2) {
         const newDistance = getDistance(event.touches[0], event.touches[1]);
-        const scaleFactor = newDistance / initialDistance;
 
         // Масштабируем пропорционально и ограничиваем максимальным коэффициентом
-        const newWidth = Math.max(MIN_SIZE, Math.min(initialWidth * scaleFactor, initialWidth * MAX_SCALE));
-        const newHeight = Math.max(MIN_SIZE, Math.min(initialHeight * scaleFactor, initialHeight * MAX_SCALE));
+        const scaleFactor = Math.random() * 1.5 + 1; // Случайное значение от 1 до 2
+
+        const newWidth = Math.max(MIN_SIZE, Math.min(initialWidth * scaleFactor, MAX_SIZE));
+        const newHeight = Math.max(MIN_SIZE, Math.min(initialHeight * scaleFactor, MAX_SIZE));
 
         draggedElement.style.width = `${newWidth}px`;
         draggedElement.style.height = `${newHeight}px`;
@@ -142,7 +145,59 @@ document.addEventListener("touchcancel", (event) => {
     }
 });
 
-// Убираем стандартное масштабирование при двойном касании
-document.addEventListener('gesturestart', function(e) {
-    e.preventDefault();
-});
+// Функция для изменения размера через черный квадрат
+function createResizeHandle(element) {
+    const handle = document.createElement("div");
+    handle.style.position = "absolute";
+    handle.style.width = "20px";
+    handle.style.height = "20px";
+    handle.style.backgroundColor = "black";
+    handle.style.top = "0";
+    handle.style.right = "0";
+    handle.style.cursor = "se-resize"; // Курсор для изменения размера
+    element.appendChild(handle);
+
+    handle.addEventListener("touchstart", (event) => {
+        event.preventDefault();
+        const startTouch = event.changedTouches[0];
+        const initialWidth = element.offsetWidth;
+        const initialHeight = element.offsetHeight;
+        const initialX = startTouch.clientX;
+        const initialY = startTouch.clientY;
+
+        function onResizeMove(event) {
+            const moveTouch = event.changedTouches[0];
+            const deltaX = moveTouch.clientX - initialX;
+            const deltaY = moveTouch.clientY - initialY;
+
+            const newWidth = Math.max(MIN_SIZE, Math.min(initialWidth + deltaX, MAX_SIZE));
+            const newHeight = Math.max(MIN_SIZE, Math.min(initialHeight + deltaY, MAX_SIZE));
+
+            element.style.width = `${newWidth}px`;
+            element.style.height = `${newHeight}px`;
+        }
+
+        function onResizeEnd() {
+            document.removeEventListener("touchmove", onResizeMove);
+            document.removeEventListener("touchend", onResizeEnd);
+        }
+
+        document.addEventListener("touchmove", onResizeMove);
+        document.addEventListener("touchend", onResizeEnd);
+    });
+}
+
+// Пример создания объекта с возможностью изменения размера
+const divElement = document.createElement("div");
+divElement.classList.add("target");
+divElement.style.position = "absolute";
+divElement.style.top = "100px";
+divElement.style.left = "100px";
+divElement.style.width = "100px";
+divElement.style.height = "100px";
+divElement.style.backgroundColor = "red";
+
+document.body.appendChild(divElement);
+
+// Добавляем возможность изменения размера
+createResizeHandle(divElement);

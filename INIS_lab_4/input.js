@@ -4,7 +4,8 @@ let isStickyDrag = false;
 let initialPosition = null;
 let touchStartTime = 0;
 let activeTouches = new Set(); // Для отслеживания количества пальцев на экране
-const MIN_SIZE = 30; // Минимальный размер элемента
+let initialDistance = 0; // Для отслеживания дистанции при масштабировании
+const MIN_SIZE = 20; // Минимальный размер элемента
 
 // Функция начала обычного сенсорного перетаскивания
 function onTouchStart(event) {
@@ -35,6 +36,10 @@ function onTouchStart(event) {
             touchStartTime = now;
         }
     }
+    // Инициализация расстояния для масштабирования, если два пальца
+    if (event.touches.length === 2) {
+        initialDistance = getDistance(event.touches[0], event.touches[1]);
+    }
 }
 
 // Функция перемещения элемента (для обычного и "приклеенного" режима)
@@ -47,6 +52,14 @@ function onTouchMove(event) {
         } else {
             draggedElement.style.left = `${touch.clientX - draggedElement.offsetX}px`;
             draggedElement.style.top = `${touch.clientY - draggedElement.offsetY}px`;
+        }
+    }
+    // Масштабирование с двумя пальцами
+    if (event.touches.length === 2) {
+        const newDistance = getDistance(event.touches[0], event.touches[1]);
+        if (initialDistance !== 0) {
+            const scaleFactor = newDistance / initialDistance;
+            scaleElement(draggedElement, scaleFactor);
         }
     }
 }
@@ -109,10 +122,21 @@ function onResize(event) {
     }
 }
 
+// Вычисление расстояния между двумя точками
+function getDistance(touch1, touch2) {
+    const dx = touch2.clientX - touch1.clientX;
+    const dy = touch2.clientY - touch1.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
 // Обработчик события мыши для изменения размера
 function onMouseWheel(event) {
     event.preventDefault();
-    onResize(event);
+    const target = event.target.closest(".target");
+    if (target) {
+        const scaleFactor = event.deltaY > 0 ? 0.9 : 1.1;
+        scaleElement(target, scaleFactor);
+    }
 }
 
 // Добавляем слушатели событий

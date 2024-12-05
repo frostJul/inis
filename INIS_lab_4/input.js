@@ -6,7 +6,7 @@ let touchStartTime = 0;
 let activeTouches = new Set(); // Для отслеживания пальцев на экране
 let initialDistance = 0; // Для отслеживания дистанции при масштабировании
 const MIN_SIZE = 20; // Минимальный размер элемента
-const MAX_SIZE = 200; // Максимальный размер элемента
+const MAX_SIZE = 150; // Максимальный размер элемента
 
 // Функция начала сенсорного перетаскивания
 function onTouchStart(event) {

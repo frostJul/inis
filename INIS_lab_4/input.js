@@ -6,6 +6,7 @@ let touchStartTime = 0;
 let activeTouches = new Set(); // Для отслеживания пальцев на экране
 let initialDistance = 0; // Для отслеживания дистанции при масштабировании
 const MIN_SIZE = 20; // Минимальный размер элемента
+const MAX_SIZE = 400; // Максимальный размер элемента
 
 // Функция начала сенсорного перетаскивания
 function onTouchStart(event) {
@@ -123,13 +124,18 @@ function resetDrag() {
     }
 }
 
-// Изменение размера элемента
+// Изменение размера элемента с учетом минимального и максимального размера
 function scaleElement(element, scaleFactor) {
     const rect = element.getBoundingClientRect();
-    const newWidth = Math.max(MIN_SIZE, rect.width * scaleFactor);
-    const newHeight = Math.max(MIN_SIZE, rect.height * scaleFactor);
-    element.style.width = `${newWidth}px`;
-    element.style.height = `${newHeight}px`;
+    const newWidth = Math.max(MIN_SIZE, Math.min(MAX_SIZE, rect.width * scaleFactor));
+    const newHeight = Math.max(MIN_SIZE, Math.min(MAX_SIZE, rect.height * scaleFactor));
+    
+    // Сохраняем пропорции, масштабируя одинаково ширину и высоту
+    const aspectRatio = rect.width / rect.height;
+    if (newWidth / aspectRatio >= MIN_SIZE && newWidth / aspectRatio <= MAX_SIZE) {
+        element.style.width = `${newWidth}px`;
+        element.style.height = `${newWidth / aspectRatio}px`;
+    }
 }
 
 // Вычисление расстояния между двумя точками

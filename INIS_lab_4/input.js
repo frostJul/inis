@@ -1,127 +1,197 @@
-window.onload = function() {
-    let selectedElement = null;
-    let offsetX, offsetY;
-    let isSticky = false;
-    let initialPosition = new Map();
-    let initialColor = new Map();
-    let lastTapTime = 0;
-    let touchStartTime = 0;
-    let touchStartPosition = { x: 0, y: 0 };
+// Переменные для отслеживания состояния
+let draggedElement = null;
+let isStickyDrag = false; // Режим "следующий за пальцем"
+let initialPosition = null;
+let touchStartTime = 0;
+let activeTouches = new Set(); // Для отслеживания пальцев на экране
+let initialDistance = 0; // Для отслеживания дистанции при масштабировании
+let initialWidth = 0; // Начальная ширина элемента
+let initialHeight = 0; // Начальная высота элемента
 
-    function startDrag(event) {
-        if (event.type === 'mousedown' || (event.type === 'touchstart' && event.touches.length === 1)) {
-            const clientX = event.type === 'mousedown' ? event.clientX : event.touches[0].clientX;
-            const clientY = event.type === 'mousedown' ? event.clientY : event.touches[0].clientY;
+// Минимальный и максимальный размер элемента
+const MIN_SIZE = 20;
+const MAX_SIZE = 300;
 
-            if (event.type === 'touchstart') {
-                touchStartTime = new Date().getTime();
-                touchStartPosition = { x: clientX, y: clientY };
-            }
+// Функция начала сенсорного перетаскивания
+function onTouchStart(event) {
+    event.preventDefault(); // Чтобы предотвратить стандартное приближение экрана
 
-            if (!isSticky) {
-                selectedElement = event.target.classList.contains('target') ? event.target : null;
-                if (selectedElement) {
-                    offsetX = clientX - selectedElement.getBoundingClientRect().left;
-                    offsetY = clientY - selectedElement.getBoundingClientRect().top;
-                }
-            } else {
-                offsetX = clientX - selectedElement.getBoundingClientRect().left;
-                offsetY = clientY - selectedElement.getBoundingClientRect().top;
-            }
-            event.preventDefault();
-        }
+    activeTouches.add(event.changedTouches[0].identifier); // Добавляем палец
+    if (activeTouches.size > 1) {
+        resetDrag(); // Если второй палец касается экрана, отменяем перетаскивание
+        return;
     }
 
-    function drag(event) {
-        if (selectedElement) {
-            const clientX = event.type === 'mousemove' ? event.clientX : event.touches[0].clientX;
-            const clientY = event.type === 'mousemove' ? event.clientY : event.touches[0].clientY;
+    const touch = event.changedTouches[0];
 
-            selectedElement.style.left = clientX - offsetX + 'px';
-            selectedElement.style.top = clientY - offsetY + 'px';
-            event.preventDefault();
+    const target = event.target.closest(".target");
+    if (target) {
+        draggedElement = target;
+        const rect = draggedElement.getBoundingClientRect();
+        initialPosition = { top: rect.top, left: rect.left }; // Сохраняем начальную позицию
+        draggedElement.offsetX = touch.clientX - rect.left;
+        draggedElement.offsetY = touch.clientY - rect.top;
+        initialWidth = rect.width;
+        initialHeight = rect.height;
+
+        // Для определения одиночного нажатия
+        const now = Date.now();
+        if (now - touchStartTime < 300) {
+            toggleStickyDrag();
         }
+        touchStartTime = now;
     }
 
-    function stopDrag(event) {
-        if (event.type === 'touchend') {
-            const currentTime = new Date().getTime();
-            const touchEndX = event.changedTouches[0].clientX;
-            const touchEndY = event.changedTouches[0].clientY;
+    // Инициализация расстояния для масштабирования, если два пальца
+    if (event.touches.length === 2) {
+        initialDistance = getDistance(event.touches[0], event.touches[1]);
+    }
+}
 
-            //тап
-            const touchDuration = currentTime - touchStartTime;
-            const touchDistance = Math.sqrt(
-                Math.pow(touchEndX - touchStartPosition.x, 2) +
-                Math.pow(touchEndY - touchStartPosition.y, 2)
-            );
+// Функция перемещения элемента (для обычного и "приклеенного" режима)
+function onTouchMove(event) {
+    if (!draggedElement) return;
 
-            if (touchDuration < 300 && touchDistance < 10) {
-                if (currentTime - lastTapTime < 300) { //дабл
-                    toggleStickyMode(selectedElement);
-                }
-                lastTapTime = currentTime;
-            }
-        }
+    const touch = event.changedTouches[0];
 
-        if (!isSticky && event.type !== 'touchend') {
-            selectedElement = null;
+    draggedElement.style.left = `${touch.clientX - draggedElement.offsetX}px`;
+    draggedElement.style.top = `${touch.clientY - draggedElement.offsetY}px`;
+
+    // Масштабирование с двумя пальцами
+    if (event.touches.length === 2) {
+        const newDistance = getDistance(event.touches[0], event.touches[1]);
+
+        // Масштабируем пропорционально
+        const scaleFactor = newDistance / initialDistance;
+        const newWidth = Math.max(MIN_SIZE, Math.min(initialWidth * scaleFactor, MAX_SIZE));
+        const newHeight = Math.max(MIN_SIZE, Math.min(initialHeight * scaleFactor, MAX_SIZE));
+
+        draggedElement.style.width = `${newWidth}px`;
+        draggedElement.style.height = `${newHeight}px`;
+    }
+}
+
+// Завершение сенсорного перетаскивания
+function onTouchEnd(event) {
+    activeTouches.delete(event.changedTouches[0].identifier); // Убираем палец
+    if (!isStickyDrag) {
+        draggedElement = null;
+    }
+}
+
+// Включение/выключение "приклеенного" режима
+function toggleStickyDrag() {
+    if (draggedElement) {
+        if (isStickyDrag) {
+            disableStickyDrag();
+        } else {
+            enableStickyDrag();
         }
     }
+}
 
-    function toggleStickyMode(element) {
-        if (!isSticky && element) {
-            isSticky = true;
-            selectedElement = element;
-            element.style.backgroundColor = 'blue';
-        } else if (isSticky) {
-            selectedElement.style.backgroundColor = initialColor.get(selectedElement);
-            isSticky = false;
-            selectedElement = null;
-        }
+// Включение "приклеенного" режима
+function enableStickyDrag() {
+    if (draggedElement) {
+        isStickyDrag = true;
+        draggedElement.style.backgroundColor = "blue"; // Меняем цвет
     }
+}
 
-    function handleMultiTouch(event) {
-        if (event.touches.length > 1 && selectedElement) {
-            resetElement();
-            event.preventDefault();
-        }
+// Отключение "приклеенного" режима
+function disableStickyDrag() {
+    if (draggedElement) {
+        isStickyDrag = false;
+        draggedElement.style.backgroundColor = "red"; // Возвращаем цвет
     }
+}
 
-    function resetElement() {
-        if (selectedElement) {
-            selectedElement.style.backgroundColor = initialColor.get(selectedElement);
-            let { top, left } = initialPosition.get(selectedElement);
-            selectedElement.style.left = left;
-            selectedElement.style.top = top;
-            isSticky = false;
-            selectedElement = null;
-        }
+// Сброс действий (аналог клавиши Esc)
+function resetDrag() {
+    if (draggedElement) {
+        draggedElement.style.left = `${initialPosition.left}px`;
+        draggedElement.style.top = `${initialPosition.top}px`;
+        draggedElement.style.backgroundColor = "red";
+        draggedElement = null;
+        isStickyDrag = false;
     }
+}
 
-    document.querySelectorAll('.target').forEach((target) => {
-        initialPosition.set(target, {
-            top: target.style.top,
-            left: target.style.left
-        });
+// Вычисление расстояния между двумя точками
+function getDistance(touch1, touch2) {
+    const dx = touch2.clientX - touch1.clientX;
+    const dy = touch2.clientY - touch1.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+}
 
-        initialColor.set(target, target.style.backgroundColor);
+// Функция для создания элемента изменения размера
+function createResizeHandle(element) {
+    const handle = document.createElement("div");
+    handle.style.position = "absolute";
+    handle.style.width = "20px";
+    handle.style.height = "20px";
+    handle.style.backgroundColor = "black";
+    handle.style.top = "0";
+    handle.style.right = "0";
+    handle.style.cursor = "se-resize"; // Курсор для изменения размера
+    element.appendChild(handle);
 
-        target.addEventListener('mousedown', startDrag);
-        target.addEventListener('dblclick', () => toggleStickyMode(target));
-        target.addEventListener('touchstart', startDrag, { passive: false });
-        target.addEventListener('touchend', stopDrag, { passive: false });
+    handle.addEventListener("touchstart", (event) => {
+        event.preventDefault();
+        const startTouch = event.changedTouches[0];
+        const initialWidth = element.offsetWidth;
+        const initialHeight = element.offsetHeight;
+        const initialX = startTouch.clientX;
+        const initialY = startTouch.clientY;
+
+        function onResizeMove(event) {
+            const moveTouch = event.changedTouches[0];
+            const deltaX = moveTouch.clientX - initialX;
+            const deltaY = moveTouch.clientY - initialY;
+
+            const newWidth = Math.max(MIN_SIZE, Math.min(initialWidth + deltaX, MAX_SIZE));
+            const newHeight = Math.max(MIN_SIZE, Math.min(initialHeight + deltaY, MAX_SIZE));
+
+            element.style.width = `${newWidth}px`;
+            element.style.height = `${newHeight}px`;
+        }
+
+        function onResizeEnd() {
+            document.removeEventListener("touchmove", onResizeMove);
+            document.removeEventListener("touchend", onResizeEnd);
+        }
+
+        document.addEventListener("touchmove", onResizeMove);
+        document.addEventListener("touchend", onResizeEnd);
     });
+}
 
-    document.addEventListener('mousemove', drag);
-    document.addEventListener('mouseup', stopDrag);
-    document.addEventListener('touchmove', drag, { passive: false });
-    document.addEventListener('touchend', stopDrag, { passive: false });
-    document.addEventListener('touchstart', handleMultiTouch, { passive: false });
+// Добавляем элементы и функционал
+function createTargetElement(x, y) {
+    const divElement = document.createElement("div");
+    divElement.classList.add("target");
+    divElement.style.position = "absolute";
+    divElement.style.top = `${y}px`;
+    divElement.style.left = `${x}px`;
+    divElement.style.width = "100px";
+    divElement.style.height = "100px";
+    divElement.style.backgroundColor = "red";
+    document.body.appendChild(divElement);
 
-    document.addEventListener('keyup', (event) => {
-        if (event.key === 'Escape') {
-            resetElement();
-        }
-    });
-};
+    createResizeHandle(divElement);
+}
+
+// Создаем примеры элементов
+createTargetElement(100, 100);
+createTargetElement(300, 300);
+createTargetElement(500, 500);
+
+// Добавляем слушатели событий
+document.addEventListener("touchstart", onTouchStart);
+document.addEventListener("touchmove", onTouchMove);
+document.addEventListener("touchend", onTouchEnd);
+document.addEventListener("touchcancel", (event) => {
+    for (const touch of event.changedTouches) {
+        activeTouches.delete(touch.identifier);
+    }
+});

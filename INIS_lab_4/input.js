@@ -3,6 +3,8 @@ let draggedElement = null;
 let isStickyDrag = false;
 let initialPosition = null;
 let isTouchDragging = false;
+let lastTouchTime = 0; // Время последнего касания
+let touchDelay = 300; // Максимальное время для распознавания двойного касания (в миллисекундах)
 
 // Функция для обработки начала обычного перетаскивания (мышь или сенсор)
 function onStart(event) {
@@ -45,19 +47,24 @@ function onEnd(event) {
     }
 }
 
-// Функция для обработки двойного нажатия (включение "приклеенного" режима)
+// Функция для обработки двойного касания (включение "приклеенного" режима)
 function onDoubleTap(event) {
     if (event.target.classList.contains("target")) {
-        if (!isStickyDrag) {
-            draggedElement = event.target;
-            draggedElement.style.backgroundColor = "blue"; // Меняем цвет
-            isStickyDrag = true;
-        } else {
-            // Отключение "приклеенного" режима
-            draggedElement.style.backgroundColor = "red"; // Возвращаем цвет
-            draggedElement = null;
-            isStickyDrag = false;
+        const currentTime = new Date().getTime();
+        if (currentTime - lastTouchTime <= touchDelay) {
+            // Обрабатываем двойное касание
+            if (!isStickyDrag) {
+                draggedElement = event.target;
+                draggedElement.style.backgroundColor = "blue"; // Меняем цвет
+                isStickyDrag = true;
+            } else {
+                // Отключение "приклеенного" режима
+                draggedElement.style.backgroundColor = "red"; // Возвращаем цвет
+                draggedElement = null;
+                isStickyDrag = false;
+            }
         }
+        lastTouchTime = currentTime;
     }
 }
 
@@ -90,4 +97,4 @@ document.addEventListener("keydown", onKeyDownOrSecondTouch);
 document.addEventListener("touchstart", onStart);
 document.addEventListener("touchmove", onMove);
 document.addEventListener("touchend", onEnd);
-document.addEventListener("touchstart", onKeyDownOrSecondTouch);
+document.addEventListener("touchstart", onDoubleTap);

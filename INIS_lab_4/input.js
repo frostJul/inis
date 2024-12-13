@@ -6,6 +6,11 @@ let isTouchDragging = false;
 let lastTouchTime = 0; // Время последнего касания
 let touchDelay = 300; // Максимальное время для распознавания двойного касания (в миллисекундах)
 
+let resizingElement = null; // Элемент, который изменяется в размерах
+let resizeStartPosition = null; // Начальная позиция для изменения размера
+let minSize = 50; // Минимальный размер
+let maxSize = 400; // Максимальный размер
+
 // Функция для обработки начала обычного перетаскивания (мышь или сенсор)
 function onStart(event) {
     const isTouch = event.type === "touchstart";
@@ -20,6 +25,19 @@ function onStart(event) {
         draggedElement.offsetX = point.clientX - rect.left;
         draggedElement.offsetY = point.clientY - rect.top;
         isTouchDragging = isTouch;
+        event.preventDefault();
+    }
+
+    // Обработка начала изменения размера
+    if (event.target.classList.contains("resize-handle")) {
+        resizingElement = event.target.parentElement;
+        const rect = resizingElement.getBoundingClientRect();
+        resizeStartPosition = {
+            x: point.clientX,
+            y: point.clientY,
+            width: rect.width,
+            height: rect.height
+        };
         event.preventDefault();
     }
 }
@@ -37,6 +55,23 @@ function onMove(event) {
         draggedElement.style.left = `${point.clientX}px`;
         draggedElement.style.top = `${point.clientY}px`;
     }
+
+    // Обработка изменения размера
+    if (resizingElement) {
+        const deltaX = point.clientX - resizeStartPosition.x;
+        const deltaY = point.clientY - resizeStartPosition.y;
+
+        let newWidth = resizeStartPosition.width + deltaX;
+        let newHeight = resizeStartPosition.height + deltaY;
+
+        // Ограничиваем минимальные и максимальные размеры
+        newWidth = Math.max(minSize, Math.min(newWidth, maxSize));
+        newHeight = Math.max(minSize, Math.min(newHeight, maxSize));
+
+        resizingElement.style.width = `${newWidth}px`;
+        resizingElement.style.height = `${newHeight}px`;
+        event.preventDefault();
+    }
 }
 
 // Функция для обработки завершения обычного перетаскивания (мышь или сенсор)
@@ -45,6 +80,7 @@ function onEnd(event) {
         draggedElement = null;
         isTouchDragging = false;
     }
+    resizingElement = null; // Завершаем изменение размера
 }
 
 // Функция для обработки двойного касания (включение "приклеенного" режима)
@@ -98,3 +134,30 @@ document.addEventListener("touchstart", onStart);
 document.addEventListener("touchmove", onMove);
 document.addEventListener("touchend", onEnd);
 document.addEventListener("touchstart", onDoubleTap);
+
+// Функция для создания прямоугольников с черным квадратом в правом верхнем углу
+function createRectangle() {
+    const rect = document.createElement("div");
+    rect.classList.add("target");
+    rect.style.position = "absolute";
+    rect.style.width = "200px";
+    rect.style.height = "150px";
+    rect.style.backgroundColor = "red";
+    rect.style.top = "100px";
+    rect.style.left = "100px";
+    
+    const resizeHandle = document.createElement("div");
+    resizeHandle.classList.add("resize-handle");
+    resizeHandle.style.position = "absolute";
+    resizeHandle.style.width = "20px";
+    resizeHandle.style.height = "20px";
+    resizeHandle.style.backgroundColor = "black";
+    resizeHandle.style.top = "0";
+    resizeHandle.style.right = "0";
+    rect.appendChild(resizeHandle);
+
+    document.body.appendChild(rect);
+}
+
+// Создаем пример прямоугольника
+createRectangle();

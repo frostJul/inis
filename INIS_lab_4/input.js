@@ -71,7 +71,7 @@ function onDoubleTap(event) {
 // Функция для обработки нажатия клавиши Esc или второго касания
 function onKeyDownOrSecondTouch(event) {
     const isSecondTouch = event.type === "touchstart" && event.touches.length > 1;
-    const isEscapeKey = event.key === "Escape";
+    const isEscapeKey = event.type === "keydown" && event.key === "Escape"; // Используем правильное событие для Esc
 
     if (isSecondTouch || isEscapeKey) {
         if (draggedElement) {
